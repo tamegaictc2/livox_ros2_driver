@@ -315,22 +315,24 @@ uint32_t Lddc::PublishPointcloudData(LidarDataQueue *queue, uint32_t packet_num,
     ++published_packet;
     last_timestamp = timestamp;
   }
+  sensor_msgs::msg::PointCloud2 ros_cloud;
+  pcl::toROSMsg(cloud, ros_cloud);
 
-  rclcpp::Publisher<PointCloud>::SharedPtr publisher =
-      std::dynamic_pointer_cast<rclcpp::Publisher<PointCloud>>
-      (GetCurrentPublisher(handle));
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher =
+      std::dynamic_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>>(
+          GetCurrentPublisher(handle)
+      );
   if (kOutputToRos == output_type_) {
-    publisher->publish(cloud);
+      publisher->publish(ros_cloud);
   } else {
-#if 0    
-    if (bag_) {
-      bag_->write(p_publisher->getTopic(), rclcpp::Time(timestamp),
-                  cloud);
-    }
-#endif    
+      #if 0
+      if (bag_) {
+          bag_->write(publisher->get_topic_name(), rclcpp::Time(timestamp), ros_cloud);
+      }
+      #endif
   }
   if (!lidar->data_is_pubulished) {
-    lidar->data_is_pubulished = true;
+      lidar->data_is_pubulished = true;
   }
   return published_packet;
 }
@@ -585,8 +587,8 @@ std::shared_ptr<rclcpp::PublisherBase> Lddc::CreatePublisher(uint8_t msg_type,
       return cur_node_->create_publisher<
           sensor_msgs::msg::PointCloud2>(topic_name, queue_size);
     } else if (kLivoxCustomMsg == msg_type) {
-      RCLCPP_INFO(cur_node_->get_logger(),
-          "%s publish use livox custom format", topic_name);
+      // RCLCPP_INFO(cur_node_->get_logger(),
+      //     "%s publish use livox custom format", topic_name);
       return cur_node_->create_publisher<
           livox_interfaces::msg::CustomMsg>(topic_name, queue_size);
     }
